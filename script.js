@@ -1,5 +1,11 @@
 (() => {
-  function beep(freq = 880, duration = 0.2, volume = 0.3) {
+  // --- CONFIG ---
+  const KEYWORD = 'StreetName';   // set your word here (case-insensitive)
+  const TONE_MATCH = 700;      // tone when KEYWORD is in the value
+  const TONE_NORMAL = 400;     // tone when it's not
+
+  // --- helper: beep ---
+  function beep(freq = 880, duration = 0.5, volume = 0.3) {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -23,13 +29,20 @@
   const observer = new MutationObserver(() => {
     const current = el.textContent;
     if (current !== lastValue) {
-      console.log('[watcher] CHANGED:', lastValue, '→', current);
+      const hasKeyword = (current ?? '')
+        .toLowerCase()
+        .includes(KEYWORD.toLowerCase());
+
+      console.log(
+        '[watcher] CHANGED:', lastValue, '→', current,
+        hasKeyword ? `(contains "${KEYWORD}")` : ''
+      );
+
       lastValue = current;
-      beep(400, 0.5);
+      beep(hasKeyword ? TONE_MATCH : TONE_NORMAL, 0.5);
     }
   });
 
-  // watch text changes inside the element
   observer.observe(el, {
     childList: true,
     characterData: true,
@@ -40,5 +53,5 @@
     observer.disconnect();
     console.log('[watcher] stopped');
   };
-  console.log('[watcher] observing. Call stopWatcher() to stop.');
+  console.log(`[watcher] observing. Keyword: "${KEYWORD}". Call stopWatcher() to stop.`);
 })();
