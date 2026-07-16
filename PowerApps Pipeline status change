@@ -1,0 +1,47 @@
+(() => {
+  if (window.stopWatcher) window.stopWatcher();
+
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  function beep() {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 1000;
+    gain.gain.value = 0.3;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  }
+  function beepRepeat() {
+    if (ctx.state === 'suspended') ctx.resume();
+    for (let i = 0; i < 3; i++) setTimeout(beep, i * 180);
+  }
+
+  const read = () =>
+    [...document.querySelectorAll('[data-testid="DeployCompletedIcon"]')].map(icon => {
+      const el = icon.closest('.ms-StackItem') || icon.parentElement;
+      return el.textContent.trim().replace(/\s+/g, ' ');
+    });
+
+  let last = read();
+  console.log('[watcher] initial values:', last);
+
+  const check = () => {
+    const current = read();
+    if (JSON.stringify(current) !== JSON.stringify(last)) {
+      console.log('[watcher] CHANGED:', last, '→', current);
+      last = current;
+      beepRepeat();
+    }
+  };
+
+  const observer = new MutationObserver(check);
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  const poll = setInterval(check, 2000);
+
+  window.stopWatcher = () => {
+    observer.disconnect();
+    clearInterval(poll);
+    console.log('[watcher] stopped');
+  };
+  console.log('[watcher] observing. Call stopWatcher() to stop.');
+})();
